@@ -16,20 +16,39 @@ const SCREENS = [
   { id: 'closing',    t: 'Manifiesto',             icon: 'star',          group: 'Cuenta' },
 ];
 
+const SETTINGS_DATA = {
+  idioma: 'Español (Colombia)',
+  zona: 'Valle de Aburrá · Medellín',
+  notificaciones: true,
+  alertasPedagogicas: true,
+  modoRural: false,
+  tamanoTexto: '100%',
+  altoContraste: false,
+  lectorPantalla: false,
+  compartirProgreso: true,
+  compartirUbicacion: true,
+  datosAnonimizados: true,
+};
+
 const App = () => {
   const [screen, setScreen] = useState('landing');
   const [role, setRole] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState(SETTINGS_DATA);
+  const [settingsToast, setSettingsToast] = useState(false);
 
   const go = (id) => {
     setScreen(id);
     const stage = document.querySelector('.stage');
     if (stage) stage.scrollTop = 0;
-    // also scroll the active screen content to top
     setTimeout(() => {
       const active = document.querySelector(`.screen[data-id="${id}"]`);
       if (active) active.scrollTop = 0;
     }, 50);
   };
+
+  // Expose go globally for search navigation
+  useEffect(() => { window._sparkGo = go; }, []);
 
   // Keyboard nav for demo
   useEffect(() => {
@@ -44,6 +63,13 @@ const App = () => {
   }, [screen]);
 
   const groups = [...new Set(SCREENS.map(s => s.group))];
+
+  const saveSettings = () => {
+    setSettingsToast(true);
+    setTimeout(() => { setSettingsToast(false); setShowSettings(false); }, 1400);
+  };
+
+  const toggle = (k) => setSettings(s => ({ ...s, [k]: !s[k] }));
 
   return (
     <div className="app">
@@ -75,7 +101,9 @@ const App = () => {
             <div style={{ color: 'var(--text-1)', fontSize: 12 }}>Workspace · Antioquia</div>
             <div style={{ fontSize: 10, color: 'var(--text-3)' }}>v0.6.2 · actualizado hoy</div>
           </div>
-          <button className="btn ghost sm" style={{ padding: 6 }}><Icon name="settings" size={13} /></button>
+          <button className="btn ghost sm" style={{ padding: 6 }} onClick={() => setShowSettings(true)}>
+            <Icon name="settings" size={13} />
+          </button>
         </div>
       </aside>
 
@@ -87,6 +115,90 @@ const App = () => {
           </section>
         ))}
       </main>
+
+      {/* Settings modal */}
+      {showSettings && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)' }}
+             onClick={() => setShowSettings(false)}>
+          <div className="card glass" style={{ width: 520, maxWidth: '95vw', padding: 0, overflow: 'hidden' }}
+               onClick={e => e.stopPropagation()}>
+            <div className="spread" style={{ padding: '22px 28px', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon name="settings" size={16} style={{ color: 'var(--accent)' }} />
+                <h3 style={{ fontSize: 16 }}>Configuración del workspace</h3>
+              </div>
+              <button className="btn ghost sm" onClick={() => setShowSettings(false)}><Icon name="x" size={14} /></button>
+            </div>
+            <div style={{ padding: '0 28px', overflowY: 'auto', maxHeight: '70vh' }}>
+              {[
+                {
+                  title: 'General', items: [
+                    { label: 'Idioma', value: settings.idioma, type: 'select', opts: ['Español (Colombia)', 'Español (México)', 'English'] },
+                    { label: 'Zona territorial', value: settings.zona, type: 'input' },
+                  ]
+                },
+                {
+                  title: 'Notificaciones', items: [
+                    { label: 'Notificaciones activas', key: 'notificaciones', type: 'toggle' },
+                    { label: 'Alertas pedagógicas en tiempo real', key: 'alertasPedagogicas', type: 'toggle' },
+                    { label: 'Modo rural (baja conectividad)', key: 'modoRural', type: 'toggle' },
+                  ]
+                },
+                {
+                  title: 'Accesibilidad', items: [
+                    { label: 'Alto contraste', key: 'altoContraste', type: 'toggle' },
+                    { label: 'Lector de pantalla compatible', key: 'lectorPantalla', type: 'toggle' },
+                  ]
+                },
+                {
+                  title: 'Privacidad y datos', items: [
+                    { label: 'Compartir mi progreso con docentes', key: 'compartirProgreso', type: 'toggle' },
+                    { label: 'Compartir ubicación para modo rural', key: 'compartirUbicacion', type: 'toggle' },
+                    { label: 'Datos anonimizados para mejorar el sistema', key: 'datosAnonimizados', type: 'toggle' },
+                  ]
+                },
+              ].map((section, si) => (
+                <div key={si} style={{ padding: '20px 0', borderBottom: '1px solid var(--line)' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14, fontWeight: 500 }}>{section.title}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {section.items.map((item, ii) => (
+                      <div key={ii} className="spread">
+                        <span style={{ fontSize: 13, color: 'var(--text-1)' }}>{item.label}</span>
+                        {item.type === 'toggle' ? (
+                          <button onClick={() => toggle(item.key)}
+                                  style={{ width: 36, height: 20, borderRadius: 10, cursor: 'pointer', position: 'relative',
+                                           background: settings[item.key] ? 'var(--accent)' : 'rgba(255,255,255,0.08)',
+                                           transition: 'background 0.2s', flexShrink: 0 }}>
+                            <span style={{ position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%', background: 'white',
+                                           left: settings[item.key] ? 18 : 2, transition: 'left 0.2s' }} />
+                          </button>
+                        ) : item.type === 'select' ? (
+                          <select defaultValue={item.value}
+                                  style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid var(--line-2)',
+                                           background: 'var(--bg-3)', color: 'var(--text-0)', fontSize: 12, outline: 'none' }}>
+                            {item.opts.map(o => <option key={o}>{o}</option>)}
+                          </select>
+                        ) : (
+                          <input defaultValue={item.value}
+                                 style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid var(--line-2)',
+                                          background: 'var(--bg-3)', color: 'var(--text-0)', fontSize: 12, outline: 'none', width: 200 }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '18px 28px', display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button className="btn primary" onClick={saveSettings}>
+                {settingsToast ? <><Icon name="check" size={13} /> Guardado</> : 'Guardar cambios'}
+              </button>
+              <button className="btn" onClick={() => setShowSettings(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

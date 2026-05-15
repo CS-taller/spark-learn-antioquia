@@ -154,32 +154,148 @@ const Donut = ({ value, label, size = 92, color = 'var(--accent)' }) => {
 };
 
 // Top bar
-const Topbar = ({ crumb, role = 'Estudiante', name = 'Maria T.', children }) => (
-  <div className="topbar">
-    <div className="crumb">
-      <Icon name="sparkles" size={12} />
-      <span>EduAntioquia</span>
-      <span className="sep">/</span>
-      {crumb.map((c, i) => (
-        <React.Fragment key={i}>
-          {i > 0 && <span className="sep">/</span>}
-          {i === crumb.length - 1 ? <strong>{c}</strong> : <span>{c}</span>}
-        </React.Fragment>
-      ))}
-    </div>
-    <div className="tools">
-      {children}
-      <button className="btn ghost sm" title="Buscar"><Icon name="search" size={14} /><span className="kbd">⌘K</span></button>
-      <button className="btn ghost sm"><Icon name="bell" size={14} /></button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--line)', marginLeft: 4 }}>
-        <span className="avatar">MT</span>
-        <div style={{ lineHeight: 1.2 }}>
-          <div style={{ fontSize: 12, fontWeight: 500 }}>{name}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>{role}</div>
+const Topbar = ({ crumb, role = 'Estudiante', name = 'Maria T.', children }) => {
+  const [showNotif, setShowNotif] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQ, setSearchQ] = useState('');
+
+  const notifs = [
+    { t: 'Felipe Sánchez: 5 días sin actividad', time: '3 h', color: 'var(--danger)' },
+    { t: 'Andrés Quintero: comprensión cayendo', time: '14 min', color: 'var(--danger)' },
+    { t: 'Nuevo insight IA disponible para 9° A', time: '1 h', color: 'var(--ai)' },
+    { t: 'Progreso semanal: +6.4% comprensión media', time: '1 d', color: 'var(--accent)' },
+  ];
+  const allItems = [
+    { t: 'María Taborda · Estudiante', sub: 'Valle de Aburrá · 72%', s: 'student' },
+    { t: 'Andrés Quintero · Apoyo urgente', sub: 'Riesgo alto · 42%', s: 'student' },
+    { t: 'Tutor Socrático · Fotosíntesis', sub: 'Sesión activa con IA socrática', s: 'tutor' },
+    { t: 'Panel docente · 9° A', sub: 'Daniela P. · 32 estudiantes', s: 'teacher' },
+    { t: 'Observatorio · Valle de Aburrá', sub: '124 estudiantes activos', s: 'gov' },
+    { t: 'Ética y privacidad', sub: 'Marco legal · Ley 1581 · GDPR', s: 'ethics' },
+    { t: 'Modo rural · Bajo Cauca', sub: 'Paquete offline disponible', s: 'offline' },
+    { t: 'Aprendizaje adaptativo', sub: 'Quiz activo · Fotosíntesis U4', s: 'learning' },
+  ];
+  const results = searchQ.length > 1
+    ? allItems.filter(x => x.t.toLowerCase().includes(searchQ.toLowerCase()) || x.sub.toLowerCase().includes(searchQ.toLowerCase()))
+    : allItems;
+  const navigate = (s) => { if (window._sparkGo) { window._sparkGo(s); setShowSearch(false); setShowNotif(false); } };
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setShowSearch(s => !s); setShowNotif(false); }
+      if (e.key === 'Escape') { setShowSearch(false); setShowNotif(false); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  return (
+    <div className="topbar" style={{ position: 'relative', zIndex: 20 }}>
+      <div className="crumb">
+        <Icon name="sparkles" size={12} />
+        <span>EduAntioquia</span>
+        <span className="sep">/</span>
+        {crumb.map((c, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <span className="sep">/</span>}
+            {i === crumb.length - 1 ? <strong>{c}</strong> : <span>{c}</span>}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="tools">
+        {children}
+        <button className="btn ghost sm" title="Buscar ⌘K"
+                onClick={() => { setShowSearch(s => !s); setShowNotif(false); }}>
+          <Icon name="search" size={14} /><span className="kbd">⌘K</span>
+        </button>
+        <div style={{ position: 'relative' }}>
+          <button className="btn ghost sm" onClick={() => { setShowNotif(s => !s); setShowSearch(false); }} style={{ position: 'relative' }}>
+            <Icon name="bell" size={14} />
+            <span style={{ position: 'absolute', top: 5, right: 5, width: 6, height: 6, borderRadius: '50%',
+                           background: 'var(--danger)', border: '2px solid var(--bg-0)' }} />
+          </button>
+          {showNotif && (
+            <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 310,
+                          background: 'var(--bg-2)', border: '1px solid var(--line-2)',
+                          borderRadius: 'var(--radius)', boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+                          overflow: 'hidden', zIndex: 100 }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, fontWeight: 600 }}>Notificaciones</span>
+                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: 'oklch(0.7 0.16 25 / 0.15)', color: 'var(--danger)', fontWeight: 700 }}>4 nuevas</span>
+              </div>
+              {notifs.map((n, i) => (
+                <button key={i} onClick={() => navigate('teacher')}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 16px',
+                                 width: '100%', textAlign: 'left', cursor: 'pointer',
+                                 borderBottom: i < notifs.length - 1 ? '1px solid var(--line)' : 'none',
+                                 background: 'transparent' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: n.color, marginTop: 4, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, lineHeight: 1.4 }}>{n.t}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }}>hace {n.time}</div>
+                  </div>
+                </button>
+              ))}
+              <div style={{ padding: '10px 16px', textAlign: 'center', borderTop: '1px solid var(--line)' }}>
+                <button className="btn ghost sm" style={{ fontSize: 11 }} onClick={() => navigate('teacher')}>
+                  Ver todas las alertas <Icon name="arrow" size={10} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 8, borderLeft: '1px solid var(--line)', marginLeft: 4 }}>
+          <span className="avatar">MT</span>
+          <div style={{ lineHeight: 1.2 }}>
+            <div style={{ fontSize: 12, fontWeight: 500 }}>{name}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-3)' }}>{role}</div>
+          </div>
         </div>
       </div>
+
+      {/* Search overlay */}
+      {showSearch && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200,
+                      background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)',
+                      display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 80 }}
+             onClick={() => setShowSearch(false)}>
+          <div style={{ width: 600, maxWidth: '90vw', background: 'var(--bg-2)', border: '1px solid var(--line-2)',
+                        borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.65)' }}
+               onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
+              <Icon name="search" size={16} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+              <input autoFocus value={searchQ} onChange={e => setSearchQ(e.target.value)}
+                     placeholder="Buscar estudiantes, módulos, contenido..."
+                     style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                              color: 'var(--text-0)', fontSize: 15, fontFamily: 'var(--font)' }} />
+              <button className="btn ghost sm" style={{ fontSize: 10, padding: '2px 8px' }} onClick={() => setShowSearch(false)}>Esc</button>
+            </div>
+            <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+              {results.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>Sin resultados para "{searchQ}"</div>
+              )}
+              {results.map((r, i) => (
+                <button key={i} onClick={() => navigate(r.s)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
+                                 width: '100%', textAlign: 'left', cursor: 'pointer',
+                                 borderBottom: '1px solid var(--line)', background: 'transparent' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0)' }}>{r.t}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{r.sub}</div>
+                  </div>
+                  <Icon name="arrow" size={12} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
+                </button>
+              ))}
+            </div>
+            <div style={{ padding: '10px 20px', borderTop: '1px solid var(--line)', display: 'flex', gap: 12, fontSize: 10, color: 'var(--text-3)' }}>
+              <span><span className="kbd">↵</span> navegar</span>
+              <span><span className="kbd">Esc</span> cerrar</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 Object.assign(window, { Icon, AntioquiaMap, Stat, Spark, Donut, Topbar });

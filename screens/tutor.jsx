@@ -21,11 +21,42 @@ const SOCRATIC_THREAD = [
 ];
 
 const ScreenTutor = ({ go }) => {
-  const [shown, setShown] = useState(2); // start with first two messages already shown
+  const [shown, setShown] = useState(2);
   const [typing, setTyping] = useState(false);
   const [input, setInput] = useState('');
   const [showReasoning, setShowReasoning] = useState(true);
+  const [pedagogy, setPedagogy] = useState([
+    ['Socrático', true], ['Analogías concretas', true], ['Contrapreguntas', true],
+    ['Respuesta directa', false], ['Memorización', false],
+  ]);
   const scrollRef = useRef(null);
+
+  const speakLast = () => {
+    const last = SOCRATIC_THREAD.slice(0, shown).filter(m => m.role === 'ai').at(-1);
+    if (!last) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(last.text);
+    u.lang = 'es-CO'; u.rate = 0.88; u.pitch = 1.05;
+    window.speechSynthesis.speak(u);
+  };
+
+  const handleResource = (r) => {
+    if (r.icon === 'audio') {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance('Las plantas son cocinas solares vivas. Con luz, agua y dióxido de carbono fabrican su propio alimento, el azúcar. A este proceso lo llamamos fotosíntesis. Sin las plantas, casi ninguna forma de vida podría existir en nuestro planeta.');
+      u.lang = 'es-CO'; u.rate = 0.88;
+      window.speechSynthesis.speak(u);
+    } else if (r.icon === 'book') {
+      const txt = 'RESUMEN · La fotosíntesis\n\nConcepto: Las plantas son cocinas solares vivas.\n\nIngredientes:\n  • Luz solar\n  • Agua (H₂O) desde la tierra\n  • Dióxido de carbono (CO₂) del aire\n\nProducto: Glucosa (C₆H₁₂O₆) + Oxígeno (O₂)\n\nEcuación:\n  6CO₂ + 6H₂O + luz → C₆H₁₂O₆ + 6O₂\n\nMnemónica: "Luz + Agua + Aire = Azúcar"\n\nGenerado por EduAntioquia · Tutor Socrático IA\nSesión: María T. · 2026-05-15';
+      const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'resumen-fotosintesis.txt'; a.click();
+      URL.revokeObjectURL(url);
+    } else if (r.icon === 'play') {
+      const el = document.querySelector('svg[viewBox="0 0 320 120"]');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -69,7 +100,7 @@ const ScreenTutor = ({ go }) => {
           <button className="btn ghost sm" onClick={() => setShowReasoning(s => !s)}>
             <Icon name="eye" size={12} /> {showReasoning ? 'Ocultar' : 'Ver'} razonamiento
           </button>
-          <button className="btn ghost sm"><Icon name="audio" size={12} /> Voz</button>
+          <button className="btn ghost sm" onClick={speakLast}><Icon name="audio" size={12} /> Voz</button>
         </Topbar>
       </div>
 
@@ -179,21 +210,17 @@ const ScreenTutor = ({ go }) => {
         <div>
           <div className="card-title">Marco pedagógico</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[
-              ['Socrático', true],
-              ['Analogías concretas', true],
-              ['Contrapreguntas', true],
-              ['Respuesta directa', false],
-              ['Memorización', false],
-            ].map(([l, on], i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12,
-                                     color: on ? 'var(--text-0)' : 'var(--text-3)' }}>
+            {pedagogy.map(([l, on], i) => (
+              <button key={i} onClick={() => setPedagogy(p => p.map((it, j) => j === i ? [it[0], !it[1]] : it))}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', width: '100%',
+                               color: on ? 'var(--text-0)' : 'var(--text-3)', background: 'none', border: 'none', padding: '2px 0' }}>
                 <span style={{ width: 24, height: 14, borderRadius: 7, background: on ? 'var(--accent)' : 'rgba(255,255,255,0.06)',
-                               position: 'relative', flexShrink: 0 }}>
-                  <span style={{ position: 'absolute', top: 2, [on ? 'right' : 'left']: 2, width: 10, height: 10, borderRadius: '50%', background: 'white' }} />
+                               position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+                  <span style={{ position: 'absolute', top: 2, width: 10, height: 10, borderRadius: '50%', background: 'white',
+                                 left: on ? 12 : 2, transition: 'left 0.2s' }} />
                 </span>
                 {l}
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -204,9 +231,10 @@ const ScreenTutor = ({ go }) => {
             {[
               { icon: 'play', t: 'Diagrama animado · fotosíntesis', d: 'Generado · 0:48' },
               { icon: 'audio', t: 'Audio narrado · 1:12', d: 'Voz cálida · ES-CO' },
-              { icon: 'book', t: 'Resumen para tu cuaderno', d: 'PDF · 1 página' },
+              { icon: 'book', t: 'Resumen para tu cuaderno', d: 'TXT · 1 página' },
             ].map((r, i) => (
-              <button key={i} className="card" style={{ padding: 10, textAlign: 'left', display: 'flex', gap: 10, alignItems: 'center', cursor: 'pointer' }}>
+              <button key={i} className="card" onClick={() => handleResource(r)}
+                      style={{ padding: 10, textAlign: 'left', display: 'flex', gap: 10, alignItems: 'center', cursor: 'pointer' }}>
                 <span style={{ width: 26, height: 26, borderRadius: 6, background: 'var(--ai-soft)',
                                color: 'var(--ai)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name={r.icon} size={12} />
@@ -302,8 +330,14 @@ const Message = ({ m, showReasoning }) => {
           )}
         </div>
         <div style={{ display: 'flex', gap: 4, marginTop: 6, fontSize: 11, color: 'var(--text-3)' }}>
-          <button className="btn ghost sm" style={{ padding: '2px 8px', fontSize: 10 }}><Icon name="audio" size={10} /> Escuchar</button>
-          <button className="btn ghost sm" style={{ padding: '2px 8px', fontSize: 10 }}><Icon name="refresh" size={10} /> Reformular</button>
+          <button className="btn ghost sm" style={{ padding: '2px 8px', fontSize: 10 }}
+                  onClick={() => { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(m.text); u.lang = 'es-CO'; u.rate = 0.88; window.speechSynthesis.speak(u); }}>
+            <Icon name="audio" size={10} /> Escuchar
+          </button>
+          <button className="btn ghost sm" style={{ padding: '2px 8px', fontSize: 10 }}
+                  onClick={() => { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance('Déjame reformularlo de otra manera. ' + m.text); u.lang = 'es-CO'; u.rate = 0.88; window.speechSynthesis.speak(u); }}>
+            <Icon name="refresh" size={10} /> Reformular
+          </button>
         </div>
       </div>
     </div>

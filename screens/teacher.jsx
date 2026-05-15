@@ -1,5 +1,11 @@
 /* ============ Panel Docente ============ */
 const ScreenTeacher = ({ go }) => {
+  const [filter, setFilter] = useState('todos');
+  const [showActivity, setShowActivity] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const showMsg = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3500); };
+
   const students = [
     { n: 'María Taborda', p: 78, risk: 'low', t: 'al día', last: '12 min', s: [60,62,65,68,70,72,74,78] },
     { n: 'Andrés Quintero', p: 42, risk: 'high', t: 'requiere apoyo', last: '2 días', s: [55,50,48,46,44,42,40,42] },
@@ -13,11 +19,62 @@ const ScreenTeacher = ({ go }) => {
 
   const riskColor = { low: 'var(--accent)', med: 'var(--warn)', high: 'var(--danger)' };
 
+  const downloadReport = () => {
+    const header = 'Nombre,Progreso (%),Estado,Última actividad,Riesgo\n';
+    const rows = students.map(s =>
+      `"${s.n}",${s.p},"${s.t}","${s.last}","${{ low: 'Bajo', med: 'Medio', high: 'Alto' }[s.risk]}"`
+    ).join('\n');
+    const blob = new Blob(['\ufeff' + header + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'reporte-9A-semanal.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showMsg('Reporte descargado · reporte-9A-semanal.csv');
+  };
+
+  const filtered = filter === 'todos' ? students
+    : filter === 'apoyo' ? students.filter(s => s.risk === 'high')
+    : students.filter(s => s.risk === 'low');
+
   return (
-    <div style={{ minHeight: '100%' }}>
+    <div style={{ minHeight: '100%', position: 'relative' }}>
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 999, display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '12px 18px', borderRadius: 12, background: 'var(--bg-3)', border: '1px solid var(--line-2)',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.5)', fontSize: 13, color: 'var(--text-0)' }}>
+          <Icon name="check" size={13} style={{ color: 'var(--accent)' }} />{toast}
+        </div>
+      )}
+      {showActivity && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)' }}
+             onClick={() => setShowActivity(false)}>
+          <div className="card glass" style={{ padding: 32, width: 480, maxWidth: '90vw' }}
+               onClick={e => e.stopPropagation()}>
+            <div className="spread" style={{ marginBottom: 22 }}>
+              <h3>Nueva actividad</h3>
+              <button className="btn ghost sm" onClick={() => setShowActivity(false)}><Icon name="x" size={14} /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+              {[['Tipo', 'Quiz adaptativo'], ['Tema', 'Fotosíntesis — Unidad 4'], ['Asignado a', '9° A · 32 estudiantes'], ['Fecha límite', '2026-05-22']].map(([l, v], i) => (
+                <div key={i}>
+                  <div style={{ fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.1, marginBottom: 6 }}>{l}</div>
+                  <input defaultValue={v} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--line-2)',
+                                                    background: 'rgba(255,255,255,0.04)', color: 'var(--text-0)', fontSize: 13, outline: 'none' }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn primary" onClick={() => { setShowActivity(false); showMsg('Actividad "Quiz · Fotosíntesis U4" asignada a 9° A'); }}>
+                Crear actividad
+              </button>
+              <button className="btn" onClick={() => setShowActivity(false)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       <Topbar crumb={['Panel docente', '9° A · I.E. José A. Galán']} role="Docente" name="Daniela P.">
-        <button className="btn ghost sm"><Icon name="download" size={12} /> Reporte semanal</button>
-        <button className="btn sm"><Icon name="plus" size={12} /> Nueva actividad</button>
+        <button className="btn ghost sm" onClick={downloadReport}><Icon name="download" size={12} /> Reporte semanal</button>
+        <button className="btn sm" onClick={() => setShowActivity(true)}><Icon name="plus" size={12} /> Nueva actividad</button>
       </Topbar>
 
       <div style={{ padding: '28px 40px 60px', display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -39,13 +96,16 @@ const ScreenTeacher = ({ go }) => {
                 <div className="card-title" style={{ margin: 0 }}>Estudiantes · 9° A</div>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button className="chip"><span className="dot" />Todos</button>
-                <span className="chip muted">Apoyo</span>
-                <span className="chip muted">Avanzados</span>
+                {[['todos', 'Todos'], ['apoyo', 'Apoyo'], ['avanzados', 'Avanzados']].map(([f, lbl]) => (
+                  <button key={f} onClick={() => setFilter(f)}
+                          className={`chip ${filter === f ? '' : 'muted'}`} style={{ cursor: 'pointer' }}>
+                    {filter === f && <span className="dot" />}{lbl}
+                  </button>
+                ))}
               </div>
             </div>
             <div style={{ padding: '8px 0' }}>
-              {students.map((s, i) => (
+              {filtered.map((s, i) => (
                 <button key={i} onClick={() => go('student')}
                         style={{ display: 'grid', gridTemplateColumns: '32px 1.2fr 80px 1fr 80px 120px 60px',
                                   alignItems: 'center', gap: 14,
@@ -138,7 +198,8 @@ const ScreenTeacher = ({ go }) => {
               <div key={i} style={{ padding: 16, borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--line)' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 8, lineHeight: 1.4 }}>{x.t}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5, marginBottom: 14 }}>{x.d}</div>
-                <button className="btn ghost sm" style={{ padding: '4px 0', color: 'var(--ai)' }}>{x.a} <Icon name="arrow" size={11} /></button>
+                <button className="btn ghost sm" style={{ padding: '4px 0', color: 'var(--ai)' }}
+                        onClick={() => showMsg(`IA: "${x.a}" iniciada — ${x.t}`)}>{x.a} <Icon name="arrow" size={11} /></button>
               </div>
             ))}
           </div>
