@@ -4,6 +4,18 @@ const ScreenMultimodal = ({ go }) => {
   const [mode, setMode] = useState('visual');
   const [size, setSize] = useState(100);
   const [contrast, setContrast] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1.0);
+  const narrationText = "Las plantas son organismos extraordinarios. Mediante la fotosíntesis, capturan energía solar y la usan para transformar agua y dióxido de carbono en azúcar, su propio alimento. Cada hoja verde es una pequeña fábrica de energía, trabajando en silencio para sostener la vida de nuestro planeta. Sin las plantas, casi ninguna forma de vida podría existir en la Tierra.";
+  const handleSpeak = () => {
+    if (speaking) { window.speechSynthesis.cancel(); setSpeaking(false); return; }
+    const u = new SpeechSynthesisUtterance(narrationText);
+    u.lang = 'es-CO'; u.rate = speechRate; u.pitch = 1.0;
+    u.onend = () => setSpeaking(false); u.onerror = () => setSpeaking(false);
+    setSpeaking(true); window.speechSynthesis.speak(u);
+  };
+  useEffect(() => { return () => window.speechSynthesis.cancel(); }, []);
+  useEffect(() => { if (mode !== 'audio') { window.speechSynthesis.cancel(); setSpeaking(false); } }, [mode]);
 
   return (
     <div style={{ minHeight: '100%' }}>
@@ -67,13 +79,13 @@ const ScreenMultimodal = ({ go }) => {
 
             <Panel title="Velocidad de lectura">
               <div style={{ display: 'flex', gap: 4 }}>
-                {['0.75x', '1.0x', '1.25x', '1.5x'].map((s, i) => (
-                  <button key={s} style={{
+                {[['0.75x', 0.75], ['1.0x', 1.0], ['1.25x', 1.25], ['1.5x', 1.5]].map(([lbl, rate]) => (
+                  <button key={lbl} onClick={() => setSpeechRate(rate)} style={{
                     flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12,
-                    border: `1px solid ${i === 1 ? 'var(--accent)' : 'var(--line-2)'}`,
-                    background: i === 1 ? 'var(--accent-soft)' : 'transparent',
-                    color: i === 1 ? 'var(--text-0)' : 'var(--text-2)'
-                  }}>{s}</button>
+                    border: `1px solid ${speechRate === rate ? 'var(--accent)' : 'var(--line-2)'}`,
+                    background: speechRate === rate ? 'var(--accent-soft)' : 'transparent',
+                    color: speechRate === rate ? 'var(--text-0)' : 'var(--text-2)'
+                  }}>{lbl}</button>
                 ))}
               </div>
             </Panel>
@@ -101,9 +113,13 @@ const ScreenMultimodal = ({ go }) => {
             <div>
               <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--line)', marginBottom: 20,
                             background: 'radial-gradient(circle at 30% 20%, oklch(0.85 0.12 80 / 0.15), transparent 60%)' }}>
-                <div className="img-ph" style={{ aspectRatio: '16/9', borderRadius: 0, border: 'none' }}>
-                  [ animación · planta + luz solar + agua ]
-                </div>
+                <iframe
+                  src="https://www.youtube.com/embed/ru6rZNQg3eM?rel=0&modestbranding=1"
+                  style={{ width: '100%', aspectRatio: '16/9', border: 'none', display: 'block' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="La fotosíntesis — Vídeos Educativos para Niños"
+                />
               </div>
               <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--text-1)' }}>
                 Las plantas son <strong style={{ color: 'var(--accent)' }}>cocinas solares vivas</strong>.
@@ -117,12 +133,12 @@ const ScreenMultimodal = ({ go }) => {
             <div style={{ padding: 20, borderRadius: 12, border: '1px solid var(--line)',
                           background: 'rgba(255,255,255,0.02)', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                <button className="btn primary" style={{ width: 44, height: 44, padding: 0, borderRadius: '50%' }}>
-                  <Icon name="play" size={14} />
+                <button className="btn primary" onClick={handleSpeak} style={{ width: 44, height: 44, padding: 0, borderRadius: '50%' }}>
+                  <Icon name={speaking ? 'x' : 'play'} size={14} />
                 </button>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Narración · La fotosíntesis</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Voz cálida ES-CO · 2:14</div>
+                  <div style={{ fontSize: 11, color: speaking ? 'var(--accent)' : 'var(--text-3)' }}>{speaking ? 'Reproduciendo… haz clic para detener' : 'Voz cálida ES-CO · haz clic para escuchar'}</div>
                 </div>
               </div>
               {/* waveform */}
@@ -160,8 +176,14 @@ const ScreenMultimodal = ({ go }) => {
           {/* Señas */}
           {mode === 'sign' && (
             <div>
-              <div className="img-ph" style={{ aspectRatio: '16/9', borderRadius: 12, marginBottom: 16 }}>
-                [ video LSC · intérprete narrando la lección ]
+              <div style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                <iframe
+                  src="https://www.youtube.com/embed/JE8l6xmhjyc?rel=0&modestbranding=1"
+                  style={{ width: '100%', aspectRatio: '16/9', border: 'none', display: 'block' }}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="Lengua de Señas Colombiana — INSOR Educativo Colombia"
+                />
               </div>
               <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>
                 Cada contenido cuenta con interpretación en <strong style={{ color: 'var(--text-0)' }}>Lengua de Señas Colombiana (LSC)</strong>,
