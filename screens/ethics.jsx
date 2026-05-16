@@ -8,33 +8,81 @@ const ScreenEthics = ({ go }) => {
   const toggleConsent = (k) => setConsents(c => ({ ...c, [k]: !c[k] }));
 
   const downloadData = () => {
-    const data = {
-      nombre: 'María Taborda',
-      documento_id: '****8421',
-      municipio: 'Medellín, Antioquia',
-      subregion: 'Valle de Aburrá',
-      estilo_aprendizaje: 'Visual-kinestésico',
-      progreso_general: '72%',
-      sesiones_tutor_ia: 12,
-      temas_trabajados: ['Fotosíntesis · U4', 'Mitosis · U3', 'Ecosistemas · U5'],
-      ultima_sesion: '2026-05-15T14:32:00Z',
-      consentimientos_activos: consents,
-      datos_ultima_sesion: {
-        estilo_aprendizaje: { usado: consents.estilo, proposito: 'Adaptar recursos pedagógicos' },
-        municipio_subregion: { usado: consents.municipio, proposito: 'Configurar modo conectividad' },
-        ultimas_respuestas: { usado: consents.respuestas, proposito: 'Ajustar nivel de dificultad' },
-        rendimiento_historico: { usado: consents.rendimiento, proposito: 'Personalización curricular' },
-        nombre_completo: { usado: false, proposito: 'No relevante para la sesión de IA' },
-        info_familiar: { usado: false, proposito: 'No solicitado' },
-      },
-      exportado_el: new Date().toISOString(),
-      plataforma: 'EduAntioquia · Spark Learn Antioquia v0.6.2',
-      marco_legal: 'Ley 1581 de 2012 · UNESCO IA Educación 2023 · GDPR Art. 20 · ISO 27001',
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'mis-datos-eduantioquia.json'; a.click();
-    URL.revokeObjectURL(url);
+    const fecha = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+    const consentRow = (label, val) =>
+      `<tr><td>${label}</td><td style="text-align:center;color:${val ? '#2d9e6b' : '#888'}">${val ? '✓ Activo' : '✗ Inactivo'}</td></tr>`;
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Mis datos · EduAntioquia</title>
+  <style>
+    @page { margin: 2cm; }
+    body { font-family: system-ui, -apple-system, sans-serif; color: #1a1a2e; font-size: 13px; line-height: 1.6; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2d9e6b; padding-bottom: 16px; margin-bottom: 24px; }
+    .logo { font-size: 18px; font-weight: 700; color: #2d9e6b; }
+    .logo span { display: block; font-size: 11px; font-weight: 400; color: #666; letter-spacing: 0.08em; text-transform: uppercase; }
+    .meta { font-size: 11px; color: #666; text-align: right; }
+    h2 { font-size: 14px; font-weight: 600; color: #2d9e6b; border-bottom: 1px solid #e0f2ea; padding-bottom: 6px; margin: 24px 0 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    td { padding: 7px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    td:first-child { color: #555; width: 52%; }
+    td:last-child { font-weight: 500; }
+    .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .pill.si { background: #e0f2ea; color: #2d9e6b; }
+    .pill.no { background: #f5f5f5; color: #999; }
+    .footer { margin-top: 32px; padding-top: 12px; border-top: 1px solid #e0e0e0; font-size: 10px; color: #aaa; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">EduAntioquia<span>Spark Learn Antioquia · v0.6.2</span></div>
+    <div class="meta">Exportado el ${fecha}<br>Documento: mis-datos-eduantioquia.pdf</div>
+  </div>
+
+  <h2>Datos del estudiante</h2>
+  <table>
+    <tr><td>Nombre</td><td>María Taborda</td></tr>
+    <tr><td>Documento</td><td>****8421</td></tr>
+    <tr><td>Municipio</td><td>Medellín, Antioquia</td></tr>
+    <tr><td>Subregión</td><td>Valle de Aburrá</td></tr>
+    <tr><td>Estilo de aprendizaje</td><td>Visual-kinestésico</td></tr>
+    <tr><td>Progreso general</td><td>72%</td></tr>
+    <tr><td>Sesiones con tutor IA</td><td>12</td></tr>
+    <tr><td>Temas trabajados</td><td>Fotosíntesis · U4, Mitosis · U3, Ecosistemas · U5</td></tr>
+    <tr><td>Última sesión</td><td>15 de mayo de 2026, 14:32</td></tr>
+  </table>
+
+  <h2>Datos usados en la última sesión</h2>
+  <table>
+    <tr><td>Estilo de aprendizaje</td><td><span class="pill ${consents.estilo ? 'si' : 'no'}">${consents.estilo ? 'Usado' : 'No usado'}</span> — Adaptar recursos pedagógicos</td></tr>
+    <tr><td>Municipio y subregión</td><td><span class="pill ${consents.municipio ? 'si' : 'no'}">${consents.municipio ? 'Usado' : 'No usado'}</span> — Configurar modo conectividad</td></tr>
+    <tr><td>Últimas respuestas (5)</td><td><span class="pill ${consents.respuestas ? 'si' : 'no'}">${consents.respuestas ? 'Usado' : 'No usado'}</span> — Ajustar nivel de dificultad</td></tr>
+    <tr><td>Historial de rendimiento</td><td><span class="pill ${consents.rendimiento ? 'si' : 'no'}">${consents.rendimiento ? 'Usado' : 'No usado'}</span> — Personalización curricular</td></tr>
+    <tr><td>Nombre completo</td><td><span class="pill no">No usado</span> — No relevante para la sesión</td></tr>
+    <tr><td>Información familiar</td><td><span class="pill no">No usado</span> — No solicitado</td></tr>
+  </table>
+
+  <h2>Consentimientos activos</h2>
+  <table>
+    ${consentRow('Estilo de aprendizaje', consents.estilo)}
+    ${consentRow('Municipio y subregión', consents.municipio)}
+    ${consentRow('Respuestas recientes', consents.respuestas)}
+    ${consentRow('Historial de rendimiento', consents.rendimiento)}
+    ${consentRow('Información familiar', consents.familia)}
+    ${consentRow('Nombre e identificación', consents.identidad)}
+  </table>
+
+  <div class="footer">
+    Marco legal: Ley 1581 de 2012 · UNESCO IA Educación 2023 · GDPR Art. 20 · ISO 27001<br>
+    Este documento fue generado automáticamente por EduAntioquia · Spark Learn Antioquia. Los datos son de uso exclusivo del titular.
+  </div>
+</body>
+</html>`;
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => { win.focus(); win.print(); }, 400);
   };
 
   return (
